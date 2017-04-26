@@ -87,7 +87,8 @@ def generateMasks(n_properties):
 # 	groups[ bitmask.count('1') ].append(extract(bitmask))
 
 cursor = conexao.cursor()
-cursor.execute('SELECT * FROM `Codigos-Estrutura_e_Dados`.programacao_codigo as codigo WHERE codigo.problema_id = 49')
+# cursor.execute('SELECT * FROM `Codigos-Estrutura_e_Dados`.programacao_codigo as codigo WHERE codigo.problema_id = 49')
+cursor.execute('SELECT arquivo, problema_id FROM programacao_codigo')
 
 for row in cursor.fetchall():
-	print row[-1]
+	print row
