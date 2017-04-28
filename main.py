@@ -88,7 +88,8 @@ def generateMasks(n_properties):
 
 cursor = conexao.cursor()
 # cursor.execute('SELECT * FROM `Codigos-Estrutura_e_Dados`.programacao_codigo as codigo WHERE codigo.problema_id = 49')
-cursor.execute('SELECT arquivo, problema_id FROM programacao_codigo')
+cursor.execute('SELECT medidas_ok, problema_id, arquivo, medida_corretude_funcional, medida_complexity, medida_distinct_operands, medida_distinct_operators FROM programacao_codigo')
+# cursor.execute('SELECT * FROM programacao_codigo')
 
 for row in cursor.fetchall():
-	print row
+	print(row)
