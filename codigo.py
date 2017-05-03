@@ -11,3 +11,4 @@ class Codigo:
 		self.medida_distinct_operators	= medida_distinct_operators
 		self.medida_distinct_operands	= medida_distinct_operands
 		self.propriedades				= []
+		self.grupo_id					= [None]
