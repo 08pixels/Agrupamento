@@ -56,3 +56,11 @@ for row in cursor.fetchall():
 		code = Codigo(row[1], row[2], row[3], row[4], row[5], row[6]) # segue a ordem de busca
 		code.propriedades = criarCombinacoes(row[3:]) # apartir da terceira posicao comeca a ser os dados das propriedades
 		codes.append(code)
+
+
+for code in codes:
+	print code.arquivo
+	
+	for x in code.propriedades:
+		print x,
+	print
