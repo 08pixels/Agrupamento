@@ -7,12 +7,12 @@ from codigo import Codigo
 conexao = MySQLdb.connect('localhost', 'root', 'root', 'Codigos-Estrutura_e_Dados')
 cursor = conexao.cursor()
 
-n_propriedades = 4	# quantidade de propriedades
+propertyKeys = {0: 'CORRETUDE',
+		1: 'COMPLEXIDADE',
+		2: 'OPERADORES',
+		3: 'OPERANDOS'		}
 
-propertyKeys = { 0: 'CORRETUDE',
-				 1: 'COMPLEXIDADE',
-				 2: 'OPERADORES',
-				 3: 'OPERANDOS'		}
+n_propriedades = len(propertyKeys)	# quantidade de propriedades
 
 def identificarChaves():
 	propriedades = [[]]
