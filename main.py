@@ -3,16 +3,18 @@
 
 import MySQLdb
 from codigo import Codigo
+from sklearn.neighbors import KNeighborsClassifier
 
 conexao = MySQLdb.connect('localhost', 'root', 'root', 'Codigos-Estrutura_e_Dados')
 cursor = conexao.cursor()
 
-propertyKeys = {0: 'CORRETUDE',
-				1: 'COMPLEXIDADE',
-				2: 'OPERADORES',
-				3: 'OPERANDOS'		}
 
-n_propriedades	= len(propertyKeys)	# quantidade de propriedades
+chaveDePropriedades = {	0: 'CORRETUDE',
+						1: 'COMPLEXIDADE',
+						2: 'OPERADORES',
+						3: 'OPERANDOS'		}
+
+n_propriedades	= len(chaveDePropriedades)	# quantidade de propriedades
 
 grupo_id		= [1,2,3,4,5,6,7,8,9,10]
 
@@ -22,7 +24,7 @@ def target(valor):
 		if valor <= (i * 10):
 			return i
 
-def identificarChaves():
+def identificarChaves(): # Identifica por extenso as propriedades
 	propriedades = [[]]
 
 	for x in range(1, 2**n_propriedades):
@@ -30,7 +32,7 @@ def identificarChaves():
 
 		for i in range(0, n_propriedades):
 			if( (x >> i) &1):
-				p.append(propertyKeys[i])
+				p.append(chaveDePropriedades[i])
 
 		propriedades.append(p)
 
@@ -57,16 +59,30 @@ DESCRICAO_DAS_CHAVES = identificarChaves()
 
 codes = []
 
+dataTraining	= [] # lista de listas
+dataTarget		= [] # lista
+
+neigh = KNeighborsClassifier(n_neighbors=10) # com 10 vizinhos
+
 for row in cursor.fetchall():
 
 	if row[0]: # medidas ok
 		code = Codigo(row[1], row[2], row[3], row[4], row[5], row[6]) # segue a ordem de busca
 		code.propriedades = criarCombinacoes(row[3:]) # apartir da terceira posicao comeca a ser os dados das propriedades
-		
-		code.grupo_id.append(target(code.propriedades[1][0]))
+
 		codes.append(code)
 
 
-for code in codes:
+for code in codes[:len(codes)/2]: # treina com metade dos codigos encontrados.
 	
-	print code.arquivo, code.grupo_id[1], code.propriedades[1][0]
+	code.grupo_id.append(target(code.propriedades[1][0])) # target soh aceita um elemento
+	
+	dataTraining.append(code.propriedades[1])
+	dataTarget.append(code.grupo_id[1])	# o indice significa uma chave (bitmask)
+
+	# print ' [%12s ] %5s %7s' %(code.arquivo, code.grupo_id[1], code.propriedades[1][0]) # imprime formatado
+
+neigh.fit(dataTraining, dataTarget) # treinando o algoritmo
+
+for code in codes[len(codes)/2:]:
+	print '\n\nO CODIGO [%s] PERTENCE AO GRUPO %d\n\n' %(code.arquivo, neigh.predict(code.propriedades[1])[0])
