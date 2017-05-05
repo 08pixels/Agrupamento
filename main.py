@@ -4,8 +4,10 @@
 import MySQLdb
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.neighbors import KNeighborsClassifier
 from codigo import Codigo
+from sklearn.decomposition import PCA
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.neighbors import KNeighborsClassifier
 
 conexao = MySQLdb.connect('localhost', 'root', 'root', 'Codigos-Estrutura_e_Dados')
 cursor = conexao.cursor()
@@ -62,9 +64,9 @@ def criarCombinacoes(tupla):
 	return lista_propriedades
 
 
-codes				 = []
-dataTrainning		 = [] # lista de listas
-dataTarget			 = [] # lista
+codes 				 = []
+dataTrainning 		 = [] # lista de listas
+dataTarget 			 = [] # lista
 DESCRICAO_DAS_CHAVES = identificarChaves()
 
 neigh = KNeighborsClassifier(n_neighbors=N) # com N vizinhos
@@ -91,30 +93,30 @@ for code in codes[:len(codes)/2]: # treina com metade dos codigos encontrados.
 
 neigh.fit(dataTrainning, dataTarget) # treinando o algoritmo
 
-data  	= [ x.propriedades[1][0]	for x in codes[len(codes)/2:] ]
-target 	= [ neigh.predict(x)[0]		for x in data ]
+data  		= [ x.propriedades[1][0]	for x in codes[len(codes)/2:] ]
+target 		= [ neigh.predict(x)[0]		for x in data ]
 
-data.append(70)
-target.append(8)
+# data.append(50)
+# target.append(5)
 
-data.append(50)
-target.append(5)
+# data.append(100)
+# target.append(10)
 
-x_min, x_max = -5, 105
-y_min, y_max = -5, 105
 
-plt.figure(2, figsize=(8, 6))
-plt.clf()
+fig = plt.figure(1, figsize=(8, 6))
+ax = Axes3D(fig, elev=-150, azim=110)
 
-# Plot the training points
-plt.scatter(data, target, c=target, cmap=plt.cm.Paired)
-plt.xlabel('CORRETUDE FUNCIONAL')
-plt.ylabel('CLASSIFICACAO')
+ax.scatter(data, target, c=target, cmap=plt.cm.Paired)
+# ax.set_title('CORRETUDE')
 
-plt.xlim(x_min, x_max)
-plt.ylim(y_min, y_max)
-plt.xticks(())
-plt.yticks(())
+# ax.set_xlabel('CORRETUDE')
+# ax.w_xaxis.set_ticklabels([])
+
+ax.set_ylabel('CORRETUDE')
+# ax.w_yaxis.set_ticklabels([])
+
+# ax.set_zlabel("3rd eigenvector")
+# ax.w_zaxis.set_ticklabels([])
 
 plt.show()
 
