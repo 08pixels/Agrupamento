@@ -3,31 +3,27 @@
 
 import MySQLdb
 import numpy as np
-import matplotlib.pyplot as plt
+
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+from sklearn import metrics
 from codigo import Codigo
+
+import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
-from sklearn.neighbors import KNeighborsClassifier
 
 conexao = MySQLdb.connect('localhost', 'root', 'root', 'Codigos-Estrutura_e_Dados')
 cursor = conexao.cursor()
 
 
-chaveDePropriedades = {	0: 'CORRETUDE',
+chaveDePropriedades = { 0: 'CORRETUDE',
 						1: 'COMPLEXIDADE',
 						2: 'OPERADORES',
-						3: 'OPERANDOS'		}
+						3: 'OPERANDOS'}
 
-N				= 10
 n_propriedades	= len(chaveDePropriedades)	# quantidade de propriedades
-grupo_id		= [x for x in range(1, N+1)]
 
-def target(valor):
-	global grupo_id, N
-
-	for i in grupo_id:	
-		if valor <= (i * N):
-			return i
 
 def identificarChaves(): # Identifica por extenso as propriedades
 	global n_propriedades
@@ -56,7 +52,7 @@ def criarCombinacoes(tupla):
 		propriedade = []
 
 		for i in range(0, n_propriedades): # notar que o 'i' eh a chave (bitmask) referente a cadeia de propriedades
-			if( (x >> i) &1):
+			if( (x >> i) &1): # 1010
 				propriedade.append(tupla[i])
 
 		lista_propriedades.append(propriedade)
@@ -65,13 +61,16 @@ def criarCombinacoes(tupla):
 
 
 codes 				 = []
-dataTrainning 		 = [] # lista de listas
-dataTarget 			 = [] # lista
 DESCRICAO_DAS_CHAVES = identificarChaves()
 
-neigh = KNeighborsClassifier(n_neighbors=N) # com N vizinhos
+cursor.execute('''SELECT medidas_ok,
+						problema_id,
+						arquivo,
+						medida_corretude_funcional,
+						medida_complexity,
+						medida_distinct_operands,
+						medida_distinct_operators FROM programacao_codigo WHERE programacao_codigo.problema_id = 49''')
 
-cursor.execute('SELECT medidas_ok, problema_id, arquivo, medida_corretude_funcional, medida_complexity, medida_distinct_operands, medida_distinct_operators FROM programacao_codigo WHERE programacao_codigo.problema_id = 49')
 
 for row in cursor.fetchall():
 
@@ -82,43 +81,43 @@ for row in cursor.fetchall():
 		codes.append(code)
 
 
-for code in codes[:len(codes)/2]: # treina com metade dos codigos encontrados.
-	
-	code.grupo_id.append(target(code.propriedades[1][0])) # target soh aceita um elemento
-	
-	dataTrainning.append(code.propriedades[1])
-	dataTarget.append(code.grupo_id[1])	# o indice significa uma chave (bitmask)
 
-	# print ' [%12s ] %5s %7s' %(code.arquivo, code.grupo_id[1], code.propriedades[1][0]) # imprime formatado
+############################################################################
+################################## BDSCAN ##################################
 
-neigh.fit(dataTrainning, dataTarget) # treinando o algoritmo
+X = StandardScaler().fit_transform([code.propriedades[1] for code in codes])
 
-data  		= [ x.propriedades[1][0]	for x in codes[len(codes)/2:] ]
-target 		= [ neigh.predict(x)[0]		for x in data ]
-
-# data.append(50)
-# target.append(5)
-
-# data.append(100)
-# target.append(10)
+db = DBSCAN().fit(X)
 
 
-fig = plt.figure(1, figsize=(8, 6))
-ax = Axes3D(fig, elev=-150, azim=110)
+core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
+core_samples_mask[db.core_sample_indices_] = True
+labels = db.labels_
 
-ax.scatter(data, target, c=target, cmap=plt.cm.Paired)
-# ax.set_title('CORRETUDE')
+n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
 
-# ax.set_xlabel('CORRETUDE')
-# ax.w_xaxis.set_ticklabels([])
 
-ax.set_ylabel('CORRETUDE')
-# ax.w_yaxis.set_ticklabels([])
 
-# ax.set_zlabel("3rd eigenvector")
-# ax.w_zaxis.set_ticklabels([])
+############################################################################
+################################ GRAFICO ###################################
+
+# Black removed and is used for noise instead.
+unique_labels = set(labels)
+colors = plt.cm.Spectral(np.linspace(0, 1, len(unique_labels)))
+
+for k, col in zip(unique_labels, colors):
+
+	if k == -1:
+		col = 'k' # Black used for noise.
+
+	class_member_mask = (labels == k)
+
+	xy = X[class_member_mask & core_samples_mask]
+	plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col, markeredgecolor='k', markersize=14)
+
+	xy = X[class_member_mask & ~core_samples_mask]
+	plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col, markeredgecolor='k', markersize=6)
+
+plt.title('Estimated number of clusters: %d' % n_clusters_)
 
 plt.show()
-
-# for code in codes[len(codes)/2:]:
-# 	print '\n\nO CODIGO [%d] PERTENCE AO GRUPO %d\n\n' %(code.arquivo, neigh.predict(code.propriedades[1])[0])
