@@ -13,19 +13,19 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 
-conexao = MySQLdb.connect('localhost', 'root', 'root', 'Codigos-Estrutura_e_Dados')
-cursor = conexao.cursor()
+conexao	= MySQLdb.connect('localhost', 'root', 'root', 'Codigos-Estrutura_e_Dados')
+cursor	= conexao.cursor()
 
 
-chaveDePropriedades = { 0: 'CORRETUDE',
+chaveDePropriedades = {	0: 'CORRETUDE',
 						1: 'COMPLEXIDADE',
 						2: 'OPERADORES',
 						3: 'OPERANDOS'}
 
-n_propriedades	= len(chaveDePropriedades)	# quantidade de propriedades
+n_propriedades	= len(chaveDePropriedades)  # quantidade de propriedades
 
 
-def identificarChaves(): # Identifica por extenso as propriedades
+def identificarChaves():  # Identifica por extenso as propriedades
 	global n_propriedades
 	global chaveDePropriedades
 
@@ -51,8 +51,9 @@ def criarCombinacoes(tupla):
 	for x in range(1, 2**n_propriedades):
 		propriedade = []
 
-		for i in range(0, n_propriedades): # notar que o 'i' eh a chave (bitmask) referente a cadeia de propriedades
-			if( (x >> i) &1): # 1010
+		# 'i' eh a chave (bitmask) referente a cadeia de propriedades
+		for i in range(0, n_propriedades):
+			if( (x >> i) &1):
 				propriedade.append(tupla[i])
 
 		lista_propriedades.append(propriedade)
@@ -69,55 +70,43 @@ cursor.execute('''SELECT medidas_ok,
 						medida_corretude_funcional,
 						medida_complexity,
 						medida_distinct_operands,
-						medida_distinct_operators FROM programacao_codigo WHERE programacao_codigo.problema_id = 49''')
+						medida_distinct_operators
+						FROM programacao_codigo
+						WHERE programacao_codigo.problema_id = 49''')
 
 
 for row in cursor.fetchall():
 
 	if row[0]: # medidas ok
-		code = Codigo(row[1], row[2], row[3], row[4], row[5], row[6]) # segue a ordem de busca
-		code.propriedades = criarCombinacoes(row[3:]) # apartir da terceira posicao comeca a ser os dados das propriedades
+		code = Codigo(row[1], row[2], row[3], row[4], row[5], row[6])  # segue a ordem de busca
+		code.propriedades = criarCombinacoes(row[3:])  # apartir do index 3 comeca a ser os dados das propriedades
 
 		codes.append(code)
 
 
-
-############################################################################
 ################################## BDSCAN ##################################
 
-X = StandardScaler().fit_transform([code.propriedades[1] for code in codes])
+chaveDePropriedades = 15 # propriedade escolhida sem criterios
 
-db = DBSCAN().fit(X)
+# parametros usados no algoritmo
 
+''' eps:
+		A distancia maxima entre duas amostras para que
+		sejam consideradas como pertencentes a mesma vizinhanca
+'''
 
-core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
-core_samples_mask[db.core_sample_indices_] = True
-labels = db.labels_
+''' min_samples:
+		O numero de amostras (ou pelo total) em uma vizinhaca
+		para um ponto ser considerado como ponto central.
+		Isso inclui o proprio ponto.
+'''
 
-n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+db = DBSCAN(eps=0.01, min_samples=1).fit([code.propriedades[chaveDePropriedades] for code in codes])
 
+# print db.core_sample_indices_ # indices dos elementos que pertencem a um grupo
+# print db.components_ # elementos e devidas propriedades (formatado)
 
+# print db.labels_ # Especifica o grupo pertente do respectivo elemento (-1 representa o 'ruído')
 
-############################################################################
-################################ GRAFICO ###################################
-
-# Black removed and is used for noise instead.
-unique_labels = set(labels)
-colors = plt.cm.Spectral(np.linspace(0, 1, len(unique_labels)))
-
-for k, col in zip(unique_labels, colors):
-
-	if k == -1:
-		col = 'k' # Black used for noise.
-
-	class_member_mask = (labels == k)
-
-	xy = X[class_member_mask & core_samples_mask]
-	plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col, markeredgecolor='k', markersize=14)
-
-	xy = X[class_member_mask & ~core_samples_mask]
-	plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col, markeredgecolor='k', markersize=6)
-
-plt.title('Estimated number of clusters: %d' % n_clusters_)
-
-plt.show()
+for index in xrange(len(codes)):
+	print codes[index].propriedades[chaveDePropriedades], ' Pertence ao grupo: ',  db.labels_[index]
